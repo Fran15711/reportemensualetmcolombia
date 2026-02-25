@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Viewer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+
+        #pdf-container {
+            width: 100%;
+            background-color: #f0f0f0;
+        }
+
+        canvas {
+            display: block;
+            margin: 20px auto;
+            background-color: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            width: 100%; /* Ancho completo */
+            height: auto; /* Proporciones automáticas */
+        }
+    </style>
+</head>
+<body>
+    <div id="pdf-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+        const container = document.getElementById('pdf-container');
+        const url = 'https://raw.githubusercontent.com/Fran15711/reportemensualetmcolombia/2db4b9150e6c4918da7263d03be7cc2f97cb14ba/Reporte%20de%20resultados%20ETM%20Colombia%20Octiubre%202025.pdf'; // URL del PDF
+
+        let pdfDoc = null;
+
+        // Obtener la escala de cada página según el ancho del contenedor
+        const getScale = (page) => {
+            return container.offsetWidth / page.getViewport({ scale: 1 }).width;
+        };
+
+        // Renderizar TODAS las páginas del PDF
+        const renderAllPages = async () => {
+            for (let pageNumber = 1; pageNumber <= pdfDoc.numPages; pageNumber++) {
+                const page = await pdfDoc.getPage(pageNumber);
+                const scale = getScale(page);
+                const viewport = page.getViewport({ scale });
+
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+
+                // Configurar el tamaño del canvas según la densidad de píxeles
+                const outputScale = window.devicePixelRatio || 1;
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
+                canvas.style.width = `${viewport.width}px`;
+                canvas.style.height = `${viewport.height}px`;
+
+                context.scale(outputScale, outputScale);
+
+                // Renderizar la página en el canvas
+                await page.render({ canvasContext: context, viewport }).promise;
+
+                // Agregar la página renderizada al contenedor
+                container.appendChild(canvas);
+            }
+        };
+
+        // Cargar el PDF
+        const loadPDF = async () => {
+            try {
+                pdfDoc = await pdfjsLib.getDocument(url).promise;
+                renderAllPages();
+            } catch (error) {
+                console.error('Error al cargar el PDF:', error);
+            }
+        };
+
+        // Inicializar el visor de PDF
+        loadPDF();
+    </script>
+</body>
